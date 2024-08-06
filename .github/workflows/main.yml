@@ -1,26 +1,38 @@
-name: Sync branch
-
+name: Add Rules to Cloudflare Gateway
 on:
   push:
-    branches:
-      - main
-
+  workflow_dispatch:
 jobs:
-  sync-branch:
-    name: Update v1 branch
+  run:
+    name: Cloudflare Gateway
+    permissions: write-all
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    # Only run on original repository
-    if: ${{ github.repository_id == 635386785 }}
+    env:
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
+      ADLIST_URLS: ${{ vars.ADLIST_URLS }}
+      WHITELIST_URLS: ${{ vars.WHITELIST_URLS }}
+      DYNAMIC_BLACKLIST: ${{ vars.DYNAMIC_BLACKLIST }}
+      DYNAMIC_WHITELIST: ${{ vars.DYNAMIC_WHITELIST }}
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@main
         with:
-          ref: main
-      - uses: connor-baer/action-sync-branch@v1.1.0
+          fetch-depth: 0
+          
+      - name: Install Python
+        uses: actions/setup-python@main
         with:
-          branch: v1
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # Force push is enabled since v1 is supposed to be an exact copy of main until breaking changes are made
-          force: true
+          python-version: 3.11
+        
+      - name: Cloudflare Gateway Zero Trust 
+        run: python -m src run 
+          
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
